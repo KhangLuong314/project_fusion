@@ -78,9 +78,9 @@ class Execution:
 
         if figureshowing:
             fig, axes = plt.subplots(1, 3, figsize=(14, 5))
-            sns.histplot(self.df['Temperature'], kde=True, ax=axes[0], color='skyblue')
+            sns.histplot(x=self.df['Temperature'], kde=True, ax=axes[0], color='skyblue')
             axes[0].set_title('Distribution of Temperature')
-            sns.histplot(self.df['Neutron Yield'], kde=True, ax=axes[1], color='salmon')
+            sns.histplot(x=self.df['Neutron Yield'], kde=True, ax=axes[1], color='salmon')
             axes[1].set_title('Distribution of Neutron Yield')
             sns.boxplot(x='Ignition', y='Temperature', data=self.df, ax=axes[2])
             axes[2].set_title('Temperature Distribution by Ignition')
@@ -187,15 +187,16 @@ class Execution:
     def top_efficiency_exp(self):
         print(self.df.nlargest(10, 'Overall Efficiency').to_string(max_cols=10)) 
 
-    def manual_search_efficiency(self, target):
-        """Uses toolbox.bin_search to find an exact efficiency match."""
-        # Get unique sorted efficiencies for binary search
-        arr = np.sort(self.df['Overall Efficiency'].dropna().unique())
-        idx = tools.bin_search(arr, target)
+    def manual_search_id(self, target_id):
+        """Uses binary search to find an experiment by ID."""
+        sorted_ids = np.sort(self.df.index.to_numpy())
+        idx = tools.bin_search(sorted_ids, target_id)
         if idx != -1:
-            print(f"{GREEN}Exact match for efficiency {target} found in sorted array at index {idx}.{RESET}")
+            row = self.df.loc[target_id]
+            print(f"{GREEN}Experiment with ID {target_id}:{RESET}")
+            print(row.to_string())
         else:
-            print(f"{YELLOW}No exact match found for efficiency {target}.{RESET}")
+            print(f"{YELLOW}No experiment found with ID {target_id}.{RESET}")
 
     def filter_by_temperature(self, threshold):
         """Filters experiments where temperature exceeds a certain threshold."""
@@ -219,13 +220,13 @@ def print_menu():
     print("1) View dataset") 
     print("2) View statistics (with figure)")
     print("3) View statistics (without figure)")
-    print("4) View specific statistics by magnetic field configuration")
-    print("5) Configure your own design matrix X")
-    print("6) Top 10 experiments with highest neutron yields")
-    print("7) Top 10 experiments with highest overall efficiency") 
-    print("8) Search for Neutron Yield range (BST Search)")
-    print("9) Manual Ranking of Efficiencies (Merge Sort)")
-    print("10) Manual Search for Efficiency (Binary Search)")
+    print("4) Manual Search for Experiment ID (Binary Search)")
+    print("5) View specific statistics by magnetic field configuration")
+    print("6) Configure your own design matrix X")
+    print("7) Top 10 experiments with highest neutron yields")
+    print("8) Top 10 experiments with highest overall efficiency") 
+    print("9) Search for Neutron Yield range (BST Search)")
+    print("10) Manual Ranking of Efficiencies (Merge Sort)")
     print("11) Filter experiments by Temperature threshold")
     print("0) Quit")
 
@@ -259,35 +260,35 @@ def main():
             data.view_stats(figureshowing=True)
         elif choice == "3":
             data.view_stats(figureshowing=False)
-        elif choice == "4":
+        elif choice == "4":            
+            try:
+                target_id = int(input("Enter experiment ID to search for: "))
+                data.manual_search_id(target_id)
+            except ValueError:
+                print(f"{RED}Invalid input. Please enter an integer ID.{RESET}")
+        elif choice == "5":
             mag_config = input("Enter magnetic field configuration to filter by: ")
             stat_type = input("Enter statistic type (mean, median, std): ")
             print(f"{YELLOW}Available features: Temperature, Neutron Yield, Overall Efficiency{RESET}")
             feature = input("Enter feature to analyze (e.g., Temperature, Neutron Yield): ")
             data.view_specific_stats(mag_config, stat_type, feature)
-        elif choice == "5":
+        elif choice == "6": 
             print_submenu()
             feature_choice = input("> ").split()
             data.config_design_matrix(feature_choice)
-        elif choice == "6": 
+        elif choice == "7": 
             data.top_neutron_exp()
-        elif choice == "7":
-            data.top_efficiency_exp()
         elif choice == "8":
+            data.top_efficiency_exp()
+        elif choice == "9":
             try:
                 min_yield = float(input("Enter minimum Neutron Yield: "))
                 max_yield = float(input("Enter maximum Neutron Yield: "))
                 data.search_neutron_yield(min_yield, max_yield)
             except ValueError:
                 print(f"{RED}Invalid input. Please enter numbers.{RESET}")
-        elif choice == "9":
-            data.manual_rank_efficiency()
         elif choice == "10":
-            try:
-                target_efficiency = float(input("Enter target efficiency to search for: "))
-                data.manual_search_efficiency(target_efficiency)
-            except ValueError:
-                print(f"{RED}Invalid input. Please enter a number.{RESET}")
+            data.manual_rank_efficiency()
         elif choice == "11":
             threshold = input("Enter Temperature threshold (keV): ")
             try:

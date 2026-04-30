@@ -46,7 +46,7 @@ The system implements a manual **Merge Sort** to rank simulated efficiency.
 The terminal interface supports the following operations:
 1. **Ranking (Manual & Automated):** Users can rank the top 10 experiments by yield or use the manual Merge Sort to see the highest efficiencies.
 2. **Search (BST Range Search):** Users can search for Neutron Yields within a specific range (Min/Max). The BST efficiently retrieves all matching experiments in $O(\log n + k)$ time, where $k$ is the number of results.
-3. **Exact Efficiency Search:** A Binary Search allows searching for exact Efficiency matches in a sorted array.
+3. **Exact Experiement ID search:** A Binary Search allows searching for exact experiment ID in a sorted array.
 4. **Filtering:** A specific feature allows filtering experiments by a user-defined Temperature threshold (keV).
 5. **Design Matrix Configuration:** Users can manually select which physical features to include in a design matrix $X$. If no features are selected, the system defaults to including all available features automatically.
 6. **Linear Regression Analysis:** Calculates the OLS regression coefficients to determine how selected features correlate with Overall Efficiency, providing insights into which parameters most impact fusion success.

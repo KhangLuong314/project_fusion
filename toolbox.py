@@ -68,16 +68,26 @@ def merge_sort(array, first, last):
     merge_sorted_seq(array, first, middle, last)
     
 def bin_search(array, target):
-    """Binary Search implementation for sorted arrays."""
+    """Binary Search implementation for sorted arrays.
+    Works with both integer IDs and float values."""
     left = 0
     right = len(array) - 1
 
     while left <= right:
         middle = (left + right) // 2
-        # Check for near-equality since we are dealing with floats
-        if abs(array[middle] - target) < 1e-9:
-            return middle
-        elif array[middle] < target:
+        mid_val = array[middle]
+        
+        # Check for exact match (integers) or near-equality (floats)
+        if isinstance(target, int) or (isinstance(target, float) and target == int(target)):
+            # Integer comparison
+            if mid_val == target:
+                return middle
+        else:
+            # Float comparison for efficiency values
+            if abs(mid_val - target) < 1e-9:
+                return middle
+                
+        if array[middle] < target:
             left = middle + 1
         else:
             right = middle - 1
