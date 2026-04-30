@@ -167,15 +167,18 @@ class Execution:
         except np.linalg.LinAlgError:
             print(f"{RED}Error: Linear algebra operation failed. The design matrix might be singular or non-invertible.{RESET}")
     
-    def search_neutron_yield(self, target):
-        """Searches for a specific Neutron Yield using the BST."""
-        indices = self.yield_bst.find_range(target, target)
+    def search_neutron_yield(self, min_val, max_val):
+        """Uses the Binary Search Tree to find all experiments within a Neutron Yield range."""
+        indices = self.yield_bst.find_range(min_val, max_val)
         if indices:
-            print(f"{GREEN}Exact match for Neutron Yield {target} found:{RESET}")
+            print(f"{GREEN}Found {len(indices)} experiments in range [{min_val}, {max_val}]:{RESET}")
+            # Use the indices found in the BST to locate the full rows in the dataframe
             results_df = self.df.loc[indices]
-            print(results_df.to_string(max_cols=10))
+            print(results_df.head(15).to_string(max_cols=10))
+            if len(indices) > 15:
+                print(f"{BLUE}... and {len(indices) - 15} more results.{RESET}")
         else:
-            print(f"{YELLOW}No exact match found for Neutron Yield {target}.{RESET}")
+            print(f"{YELLOW}No experiments found with Neutron Yield in range [{min_val}, {max_val}].{RESET}")
 
     def top_neutron_exp(self):
         print(self.df.nlargest(10, 'Neutron Yield').to_string(max_cols=10)) 
@@ -192,17 +195,6 @@ class Execution:
             print(f"{GREEN}Exact match for efficiency {target} found in sorted array at index {idx}.{RESET}")
         else:
             print(f"{YELLOW}No exact match found for efficiency {target}.{RESET}")
-
-    def search_neutron_yield_range(self, min_val, max_val):
-        """Uses the Binary Search Tree to find all experiments within a Neutron Yield range."""
-        indices = self.yield_bst.find_range(min_val, max_val)
-        if indices:
-            print(f"{GREEN}Found {len(indices)} experiments in range [{min_val}, {max_val}]:{RESET}")
-            # Use the indices found in the BST to locate the full rows in the dataframe
-            results_df = self.df.loc[indices]
-            print(results_df.head(10).to_string(max_cols=10))
-        else:
-            print(f"{YELLOW}No experiments found with Neutron Yield in range [{min_val}, {max_val}].{RESET}")
 
     def filter_by_temperature(self, threshold):
         """Filters experiments where temperature exceeds a certain threshold."""
@@ -230,7 +222,7 @@ def print_menu():
     print("5) Configure your own design matrix X")
     print("6) Top 10 experiments with highest neutron yields")
     print("7) Top 10 experiments with highest overall efficiency") 
-    print("8) Search for specific Neutron Yield (BST Search)")
+    print("8) Search for Neutron Yield range (BST Search)")
     print("9) Manual Ranking of Efficiencies (Merge Sort)")
     print("10) Filter experiments by Temperature threshold")
     print("0) Quit")
@@ -280,11 +272,12 @@ def main():
         elif choice == "7":
             data.top_efficiency_exp()
         elif choice == "8":
-            target = input("Enter target Neutron Yield to search for: ")
             try:
-                data.search_neutron_yield(float(target))
+                min_yield = float(input("Enter minimum Neutron Yield: "))
+                max_yield = float(input("Enter maximum Neutron Yield: "))
+                data.search_neutron_yield(min_yield, max_yield)
             except ValueError:
-                print(f"{RED}Invalid input. Please enter a number.{RESET}")
+                print(f"{RED}Invalid input. Please enter numbers.{RESET}")
         elif choice == "9":
             data.manual_rank_efficiency()
         elif choice == "10":

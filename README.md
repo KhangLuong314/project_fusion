@@ -25,7 +25,6 @@ Project Fusion is a terminal-based data analysis tool designed to explore and an
 | **Energy Input** | The external energy required to heat and stabilize the plasma. | Joules (J) |
 | **Ignition** | A binary indicator (0 or 1) showing if the reaction reached a self-sustaining state. | (binary) |
 | **Magnetic Field Configuration**| The geometry of the reactor (e.g., Tokamak, Stellarator). | (categorical) |
-| **Neutron Yeild**| How much neutron get produced in fusion reaction. | neutrons/s |
 | **Overall Efficiency** | The ratio of Power Output to Energy Input. | (unitless) |
 
 ## Data Structures
