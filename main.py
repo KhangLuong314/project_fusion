@@ -276,22 +276,18 @@ def main():
             feature_choice = input("> ").split()
             data.config_design_matrix(feature_choice)
         elif choice == "6": 
-            print_submenu()
-            feature_choice = input("> ").split()
-            data.config_design_matrix(feature_choice)
-        elif choice == "7":
             data.top_neutron_exp()
-        elif choice == "8":
+        elif choice == "7":
             data.top_efficiency_exp()
-        elif choice == "9":
+        elif choice == "8":
             target = input("Enter target Neutron Yield to search for: ")
             try:
                 data.search_neutron_yield(float(target))
             except ValueError:
                 print(f"{RED}Invalid input. Please enter a number.{RESET}")
-        elif choice == "10":
+        elif choice == "9":
             data.manual_rank_efficiency()
-        elif choice == "11":
+        elif choice == "10":
             threshold = input("Enter Temperature threshold (keV): ")
             try:
                 data.filter_by_temperature(float(threshold))

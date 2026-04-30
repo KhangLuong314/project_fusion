@@ -27,11 +27,6 @@ def cal_stats(data, category, stat_type, config):
         SDM = statistics.stdev(cat)
 
         return SDM
-<<<<<<< HEAD
-
-
-=======
->>>>>>> ff28312 (specific stats and correlation matrix)
 
 def merge_sorted_seq(array, left, middle, right):
     """Merges two sorted sub-arrays."""
