@@ -4,54 +4,53 @@ by Khang Luong and Anthony Storm
 CSCE 311, University of Nebraska-Lincoln
 """
 
-def merge_sorted_seq(array, left, right, end, temp_array):
-    l = left
-    r = right
-    N = 0
+def merge_sorted_seq(array, left, middle, right):
+    """Merges two sorted sub-arrays."""
+    left_part = array[left:middle]
+    right_part = array[middle:right]
     
-    while l < right and r < end:
-        if array[l] < array[r]:
-            temp_array[N] = array[r]
-            l += 1
-
+    i = j = 0
+    k = left
+    
+    # Merge in descending order to support "Top X" ranking naturally
+    while i < len(left_part) and j < len(right_part):
+        if left_part[i] > right_part[j]:
+            array[k] = left_part[i]
+            i += 1
         else:
-            temp_array[N] = array[r]
-            r += 1
-        N += 1
+            array[k] = right_part[j]
+            j += 1
+        k += 1
+        
+    while i < len(left_part):
+        array[k] = left_part[i]
+        i += 1
+        k += 1
+        
+    while j < len(right_part):
+        array[k] = right_part[j]
+        j += 1
+        k += 1
 
-        while l < right:
-            temp_array[N] = array[l]
-            l += 1
-            N += 1
-
-        while r < end:
-            temp_array[N] = array[r]
-            r += 1
-            N += 1
-
-        for i in range(end - left):
-            array[i + left] = temp_array[i]
-
-def merge_sort(array, first, last, temp_array):
-    if first == last:
+def merge_sort(array, first, last):
+    """Standard Merge Sort implementation (Recursive)."""
+    if last - first <= 1:
         return
     
-    else:
-        middle = (first + last) // 2
-
-        merge_sort(array, first, middle, temp_array)
-        merge_sort(array, middle + 1, last, temp_array)
-
-        merge_sorted_seq(array, first, middle + 1, last + 1, temp_array)
+    middle = (first + last) // 2
+    merge_sort(array, first, middle)
+    merge_sort(array, middle, last)
+    merge_sorted_seq(array, first, middle, last)
     
 def bin_search(array, target):
+    """Binary Search implementation for sorted arrays."""
     left = 0
     right = len(array) - 1
 
     while left <= right:
         middle = (left + right) // 2
-
-        if array[middle] == target:
+        # Check for near-equality since we are dealing with floats
+        if abs(array[middle] - target) < 1e-9:
             return middle
         elif array[middle] < target:
             left = middle + 1

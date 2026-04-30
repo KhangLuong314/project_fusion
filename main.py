@@ -123,20 +123,33 @@ class Execution:
         else:
             print(f"{YELLOW}No exact match found for efficiency {target}.{RESET}")
 
+    def search_neutron_yield_range(self, min_val, max_val):
+        """Uses the Binary Search Tree to find all experiments within a Neutron Yield range."""
+        indices = self.yield_bst.find_range(min_val, max_val)
+        if indices:
+            print(f"{GREEN}Found {len(indices)} experiments in range [{min_val}, {max_val}]:{RESET}")
+            # Use the indices found in the BST to locate the full rows in the dataframe
+            results_df = self.df.loc[indices]
+            print(results_df.head(10).to_string(max_cols=10))
+        else:
+            print(f"{YELLOW}No experiments found with Neutron Yield in range [{min_val}, {max_val}].{RESET}")
+
+    def filter_by_temperature(self, threshold):
+        """Filters experiments where temperature exceeds a certain threshold."""
+        filtered_df = self.df[self.df['Temperature'] > threshold]
+        print(f"{BLUE}Found {len(filtered_df)} experiments with Temperature > {threshold} keV:{RESET}")
+        print(filtered_df.head(10).to_string(max_cols=10))
+
     def manual_rank_efficiency(self):
         """Uses toolbox.merge_sort to rank the top efficiencies."""
         # Extract efficiencies to numpy array
         arr = self.df['Overall Efficiency'].dropna().to_numpy()
-        temp = np.zeros_like(arr)
         
-        # NOTE: Using tools.merge_sort. 
-        # Developer Note: toolbox.py implementation may have stability issues with large datasets.
-        print(f"{BLUE}Sorting data using manual Merge Sort...{RESET}")
-        tools.merge_sort(arr, 0, len(arr) - 1, temp)
+        print(f"{BLUE}Sorting data using manual Merge Sort (Descending)...{RESET}")
+        tools.merge_sort(arr, 0, len(arr))
         
         print(f"{GREEN}Top 5 Efficiencies (Manual Sort):{RESET}")
-        # Merge sort in toolbox is intended to be ascending/descending depending on internal logic
-        print(arr[-5:])
+        print(arr[:5])
 
 def print_menu():
     print(f"{GREEN}\n--- Nuclear Fusion Data Manager --- {RESET}")
@@ -146,8 +159,9 @@ def print_menu():
     print("4) Configure your own design matrix X")
     print("5) Top 10 experiments with highest neutron yields")
     print("6) Top 10 experiments with highest overall efficiency") 
-    print("7) Search for specific efficiency (Binary Search)")
+    print("7) Search for Neutron Yield Range (BST Range Search)")
     print("8) Manual Ranking of Efficiencies (Merge Sort)")
+    print("9) Filter experiments by Temperature threshold")
     print("0) Quit")
 
 def print_submenu():
@@ -188,13 +202,20 @@ def main():
         elif choice == "6":
             data.top_efficiency_exp()
         elif choice == "7":
-            target = input("Enter target efficiency to search for: ")
             try:
-                data.manual_search_efficiency(float(target))
+                low = float(input("Enter minimum Neutron Yield: "))
+                high = float(input("Enter maximum Neutron Yield: "))
+                data.search_neutron_yield_range(low, high)
             except ValueError:
-                print(f"{RED}Invalid input. Please enter a number.{RESET}")
+                print(f"{RED}Invalid input. Please enter numbers for the range.{RESET}")
         elif choice == "8":
             data.manual_rank_efficiency()
+        elif choice == "9":
+            threshold = input("Enter Temperature threshold (keV): ")
+            try:
+                data.filter_by_temperature(float(threshold))
+            except ValueError:
+                print(f"{RED}Invalid input. Please enter a number.{RESET}")
         elif choice == "0":
             break
         else: 

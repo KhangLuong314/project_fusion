@@ -64,3 +64,27 @@ class Binary_Search_Tree:
             else:
                 cur = cur.right
         return False
+
+    def find_range(self, min_val, max_val):
+        """Returns a list of values (indices) for keys within [min_val, max_val]."""
+        results = []
+        self._find_range_recursive(self.root, min_val, max_val, results)
+        return results
+
+    def _find_range_recursive(self, node, min_val, max_val, results):
+        if node is None:
+            return
+
+        key = node.data[0]
+        
+        # If node's key is greater than min_val, there might be more in the left subtree
+        if key > min_val:
+            self._find_range_recursive(node.left, min_val, max_val, results)
+            
+        # If node's key is in range, add its value (index)
+        if min_val <= key <= max_val:
+            results.append(node.data[1])
+            
+        # If node's key is less than max_val, there might be more in the right subtree
+        if key < max_val:
+            self._find_range_recursive(node.right, min_val, max_val, results)
