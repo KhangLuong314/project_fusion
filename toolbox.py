@@ -1,3 +1,9 @@
+"""
+Project Fusion toolbox module
+by Khang Luong and Anthony Storm
+CSCE 311, University of Nebraska-Lincoln
+"""
+
 def merge_sorted_seq(array, left, right, end, temp_array):
     l = left
     r = right
