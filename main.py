@@ -124,6 +124,7 @@ class Execution:
                 print(f"{YELLOW}Invalid statistic type: {stat_type}. Choose from mean, median, or std.{RESET}")
         except Exception as e:
             print(f"{RED}An error occurred during calculation: {e}{RESET}")
+            
     def config_design_matrix(self, feature_choice):
         """Configures the design matrix X based on user-selected features. Defaults to all features if none selected."""
         column_hash = {'1': 'Plasma Instabilities', '2': 'Magnetic Field Strength', '3': 'Fuel Density', '4': 'Temperature', '5': 'Confinement Time', 
