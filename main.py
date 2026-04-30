@@ -124,7 +124,7 @@ class Execution:
                 print(f"{YELLOW}Invalid statistic type: {stat_type}. Choose from mean, median, or std.{RESET}")
         except Exception as e:
             print(f"{RED}An error occurred during calculation: {e}{RESET}")
-            
+
     def config_design_matrix(self, feature_choice):
         """Configures the design matrix X based on user-selected features. Defaults to all features if none selected."""
         column_hash = {'1': 'Plasma Instabilities', '2': 'Magnetic Field Strength', '3': 'Fuel Density', '4': 'Temperature', '5': 'Confinement Time', 
@@ -225,7 +225,8 @@ def print_menu():
     print("7) Top 10 experiments with highest overall efficiency") 
     print("8) Search for Neutron Yield range (BST Search)")
     print("9) Manual Ranking of Efficiencies (Merge Sort)")
-    print("10) Filter experiments by Temperature threshold")
+    print("10) Manual Search for Efficiency (Binary Search)")
+    print("11) Filter experiments by Temperature threshold")
     print("0) Quit")
 
 def print_submenu():
@@ -282,6 +283,12 @@ def main():
         elif choice == "9":
             data.manual_rank_efficiency()
         elif choice == "10":
+            try:
+                target_efficiency = float(input("Enter target efficiency to search for: "))
+                data.manual_search_efficiency(target_efficiency)
+            except ValueError:
+                print(f"{RED}Invalid input. Please enter a number.{RESET}")
+        elif choice == "11":
             threshold = input("Enter Temperature threshold (keV): ")
             try:
                 data.filter_by_temperature(float(threshold))
