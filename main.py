@@ -87,26 +87,96 @@ class Execution:
             plt.tight_layout()
             plt.show()
 
+    def view_specific_stats(self, mag_config, stat_type, feature):
+        """Provides specific statistics based on user input with robustness."""
+        # Case-insensitive matching for magnetic field configuration
+        available_configs = self.df['Magnetic Field Configuration'].unique()
+        config_match = next((c for c in available_configs if str(c).lower() == mag_config.lower()), None)
+
+        if config_match is None:
+            print(f"{YELLOW}No data found for magnetic field configuration: {mag_config}{RESET}")
+            print(f"Available configurations: {available_configs}")
+            return
+
+        filtered_df = self.df[self.df['Magnetic Field Configuration'] == config_match]
+
+        # Validate feature exists and is numeric
+        if feature not in self.df.columns:
+            print(f"{RED}Error: Feature '{feature}' does not exist in the dataset.{RESET}")
+            return
+
+        if not pd.api.types.is_numeric_dtype(self.df[feature]):
+            print(f"{RED}Error: Feature '{feature}' is not numeric and cannot be used for statistics.{RESET}")
+            return
+
+        stat_type = stat_type.lower()
+        try:
+            if stat_type == 'mean':
+                result = filtered_df[feature].mean()
+                print(f"{GREEN}Mean {feature} for {config_match}: {result:.2f}{RESET}")
+            elif stat_type == 'median':
+                result = filtered_df[feature].median()
+                print(f"{GREEN}Median {feature} for {config_match}: {result:.2f}{RESET}")
+            elif stat_type == 'std':
+                result = filtered_df[feature].std()
+                print(f"{GREEN}Standard Deviation of {feature} for {config_match}: {result:.2f}{RESET}")
+            else:
+                print(f"{YELLOW}Invalid statistic type: {stat_type}. Choose from mean, median, or std.{RESET}")
+        except Exception as e:
+            print(f"{RED}An error occurred during calculation: {e}{RESET}")
     def config_design_matrix(self, feature_choice):
-        """Configures the design matrix X based on user-selected features."""
+        """Configures the design matrix X based on user-selected features. Defaults to all features if none selected."""
         column_hash = {'1': 'Plasma Instabilities', '2': 'Magnetic Field Strength', '3': 'Fuel Density', '4': 'Temperature', '5': 'Confinement Time', 
                        '6': 'Energy Input', '7': 'Power Output', '8': 'Neutron Yield', '9': 'Ignition'}
         
-        selected_cols = []
-        for i in feature_choice:
-            if i in column_hash:
-                selected_cols.append(column_hash[i])
-            else:
-                print(f"{YELLOW}Warning: Feature index {i} is invalid and will be ignored.{RESET}")
+        # Default to all features if no choice provided
+        if not feature_choice:
+            print(f"{BLUE}No features selected. Defaulting to all features.{RESET}")
+            feature_choice = ['10']
+
+        if '10' in feature_choice:
+            selected_cols = list(column_hash.values())
+        else:
+            selected_cols = []
+            for i in feature_choice:
+                if i in column_hash:
+                    selected_cols.append(column_hash[i])
+                else:
+                    print(f"{YELLOW}Warning: Feature index {i} is invalid and will be ignored.{RESET}")
         
         if not selected_cols:
             print(f"{RED}Error: No valid features selected.{RESET}")
             return
 
-        self.X = self.df[selected_cols].to_numpy()
-        self.y = self.df[['Overall Efficiency']].to_numpy()
+        # Data Cleaning: Drop rows with NaNs in selected columns or target to ensure valid matrix operations
+        analysis_df = self.df[selected_cols + ['Overall Efficiency']].dropna()
+        if analysis_df.empty:
+            print(f"{RED}Error: Not enough data points without NaNs for the selected features.{RESET}")
+            return
+
+        self.X = analysis_df[selected_cols].to_numpy()
+        self.y = analysis_df[['Overall Efficiency']].to_numpy()
         print(f"{BLUE}Design matrix X configured with shape {self.X.shape}{RESET}")
+
+        try:
+            corelation = tools.correlation_matrix(self.X, self.y)
+            features_cor = {col: corelation[idx][0] if isinstance(corelation[idx], (np.ndarray, list)) else corelation[idx] 
+                           for idx, col in enumerate(selected_cols)}
+            print(f"{GREEN}Regression coefficients between selected features and Overall Efficiency:{RESET}")
+            print(pd.DataFrame.from_dict(features_cor, orient='index', columns=['Coefficient']))
+        except np.linalg.LinAlgError:
+            print(f"{RED}Error: Linear algebra operation failed. The design matrix might be singular or non-invertible.{RESET}")
     
+    def search_neutron_yield(self, target):
+        """Searches for a specific Neutron Yield using the BST."""
+        indices = self.yield_bst.find_range(target, target)
+        if indices:
+            print(f"{GREEN}Exact match for Neutron Yield {target} found:{RESET}")
+            results_df = self.df.loc[indices]
+            print(results_df.to_string(max_cols=10))
+        else:
+            print(f"{YELLOW}No exact match found for Neutron Yield {target}.{RESET}")
+
     def top_neutron_exp(self):
         print(self.df.nlargest(10, 'Neutron Yield').to_string(max_cols=10)) 
     
@@ -156,12 +226,13 @@ def print_menu():
     print("1) View dataset") 
     print("2) View statistics (with figure)")
     print("3) View statistics (without figure)")
-    print("4) Configure your own design matrix X")
-    print("5) Top 10 experiments with highest neutron yields")
-    print("6) Top 10 experiments with highest overall efficiency") 
-    print("7) Search for Neutron Yield Range (BST Range Search)")
-    print("8) Manual Ranking of Efficiencies (Merge Sort)")
-    print("9) Filter experiments by Temperature threshold")
+    print("4) View specific statistics by magnetic field configuration")
+    print("5) Configure your own design matrix X")
+    print("6) Top 10 experiments with highest neutron yields")
+    print("7) Top 10 experiments with highest overall efficiency") 
+    print("8) Search for specific Neutron Yield (BST Search)")
+    print("9) Manual Ranking of Efficiencies (Merge Sort)")
+    print("10) Filter experiments by Temperature threshold")
     print("0) Quit")
 
 def print_submenu():
@@ -170,6 +241,7 @@ def print_submenu():
     print("1) Plasma Instabilities   2) Magnetic Field Strength  3) Fuel Density") 
     print("4) Temperature            5) Confinement Time         6) Energy Input")
     print("7) Power Output           8) Neutron Yield            9) Ignition")
+    print("10) Include all features")
 
 
 def read_int(prompt):
@@ -193,24 +265,33 @@ def main():
             data.view_stats(figureshowing=True)
         elif choice == "3":
             data.view_stats(figureshowing=False)
-        elif choice == "4": 
+        elif choice == "4":
+            mag_config = input("Enter magnetic field configuration to filter by: ")
+            stat_type = input("Enter statistic type (mean, median, std): ")
+            print(f"{YELLOW}Available features: Temperature, Neutron Yield, Overall Efficiency{RESET}")
+            feature = input("Enter feature to analyze (e.g., Temperature, Neutron Yield): ")
+            data.view_specific_stats(mag_config, stat_type, feature)
+        elif choice == "5":
             print_submenu()
             feature_choice = input("> ").split()
             data.config_design_matrix(feature_choice)
-        elif choice == "5":
-            data.top_neutron_exp()
-        elif choice == "6":
-            data.top_efficiency_exp()
+        elif choice == "6": 
+            print_submenu()
+            feature_choice = input("> ").split()
+            data.config_design_matrix(feature_choice)
         elif choice == "7":
-            try:
-                low = float(input("Enter minimum Neutron Yield: "))
-                high = float(input("Enter maximum Neutron Yield: "))
-                data.search_neutron_yield_range(low, high)
-            except ValueError:
-                print(f"{RED}Invalid input. Please enter numbers for the range.{RESET}")
+            data.top_neutron_exp()
         elif choice == "8":
-            data.manual_rank_efficiency()
+            data.top_efficiency_exp()
         elif choice == "9":
+            target = input("Enter target Neutron Yield to search for: ")
+            try:
+                data.search_neutron_yield(float(target))
+            except ValueError:
+                print(f"{RED}Invalid input. Please enter a number.{RESET}")
+        elif choice == "10":
+            data.manual_rank_efficiency()
+        elif choice == "11":
             threshold = input("Enter Temperature threshold (keV): ")
             try:
                 data.filter_by_temperature(float(threshold))

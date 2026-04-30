@@ -49,7 +49,10 @@ The terminal interface supports the following operations:
 2. **Search (BST Range Search):** Users can search for Neutron Yields within a specific range (Min/Max). The BST efficiently retrieves all matching experiments in $O(\log n + k)$ time, where $k$ is the number of results.
 3. **Exact Efficiency Search:** A Binary Search allows searching for exact Efficiency matches in a sorted array.
 4. **Filtering:** A specific feature allows filtering experiments by a user-defined Temperature threshold (keV).
-5. **Data Visualization:** Provides histograms and boxplots to visualize the distribution of plasma parameters.
+5. **Design Matrix Configuration:** Users can manually select which physical features to include in a design matrix $X$. If no features are selected, the system defaults to including all available features automatically.
+6. **Linear Regression Analysis:** Calculates the OLS regression coefficients to determine how selected features correlate with Overall Efficiency, providing insights into which parameters most impact fusion success.
+7. **Specific Statistics Filtering:** Users can calculate mean, median, or standard deviation for specific features (Temperature, Neutron Yield, etc.) filtered by a chosen Magnetic Field Configuration.
+8. **Data Visualization:** Provides histograms and boxplots to visualize the distribution of plasma parameters.
 
 ## Comparison of Approaches: Efficiency Ranking
 To satisfy the comparison requirement, we analyzed two ways to rank experiment efficiency:
