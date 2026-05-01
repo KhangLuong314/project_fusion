@@ -32,15 +32,24 @@ This system utilizes two primary data structures to manage information:
 1. **Arrays/Lists (NumPy & Pandas):** Used for bulk data storage, cleaning, and matrix operations. NumPy arrays are used for the manual Merge Sort and Binary Search operations to demonstrate algorithmic efficiency.
 2. **Binary Search Tree (BST):** A custom-implemented BST stores Neutron Yield values as keys. This allows for $O(\log n)$ existence checks and potential range searches, significantly faster than linear $O(n)$ scanning for large datasets.
 
-## Algorithm Deep Dive: Merge Sort
-The system implements a manual **Merge Sort** to rank simulated efficiency.
-- **Location:** Found in `toolbox.py` and utilized in `main.py` via the "Manual Ranking" menu option.
-- **Why Merge Sort?** Fusion data can be noisy and large. Merge Sort provides a guaranteed $O(n \log n)$ time complexity, making it stable and efficient for the thousands of rows in our dataset.
+## Algorithm Deep Dive: Binary Search Tree (BST)
+The system implements a custom **Binary Search Tree** to handle experimental results.
+- **Location:** Found in `data_structure.py` and utilized for efficient Neutron Yield lookups.
+- **Why BST?** Fusion datasets are massive. A BST allows us to perform range searches and existence checks in $O(\log n)$ average time, rather than $O(n)$ required for linear scanning.
 - **Characteristics:**
-    - **Stability:** Merge Sort preserves the relative order of experiments with identical efficiency values.
-    - **Scaling:** Unlike Bubble or Insertion sort, it handles the 30MB+ dataset without significant performance degradation.
-    - **Optimization:** The implementation uses an in-place merging strategy (via array slicing) to manage memory effectively during recursion.
-- **Limitation:** The primary limitation is its $O(n)$ space complexity due to the need for temporary storage during the merge phase.
+    - **Range Search:** The `find_range` method allows researchers to find all experiments with yields between a minimum and maximum threshold efficiently.
+    - **Dynamic Storage:** Nodes store a tuple of (key, value), where the key is the Neutron Yield and the value is the dataframe index.
+    - **Efficiency:** For a dataset of 100,000 experiments, a balanced BST can find results in a small number of comparisons.
+- **Limitation:** The current implementation overwrites duplicate keys rather than storing them in a collection, which is a planned future improvement.
+
+## Algorithm Deep Dive: Linear Regression (OLS Correlation)
+The system calculates regression coefficients to analyze feature impact on efficiency.
+- **Location:** Found in `toolbox.py` and used in the "Design Matrix Configuration" feature.
+- **The Math:** We use the **Normal Equation** for Ordinary Least Squares (OLS): $b = (X^T X)^{-1} X^T y$.
+    - $X$ is the design matrix of selected physical features.
+    - $y$ is the target vector (Overall Efficiency).
+    - $b$ is the vector of coefficients.
+- **Application:** By calculating these coefficients, researchers can determine which parameters (e.g., Magnetic Field Strength vs. Fuel Density) have the strongest correlation with the fusion reactor's net efficiency.
 
 ## System Features
 The terminal interface supports the following operations:
@@ -52,6 +61,7 @@ The terminal interface supports the following operations:
 6. **Linear Regression Analysis:** Calculates the OLS regression coefficients to determine how selected features correlate with Overall Efficiency, providing insights into which parameters most impact fusion success.
 7. **Specific Statistics Filtering:** Users can calculate mean, median, or standard deviation for specific features (Temperature, Neutron Yield, etc.) filtered by a chosen Magnetic Field Configuration.
 8. **Data Visualization:** Provides histograms and boxplots to visualize the distribution of plasma parameters.
+9. **Session Summary:** When the user quits the program (option 0), a summary table is displayed showing all operations performed during the session along with their execution times. This provides insight into which analysis methods took the longest and gives a quick overview of the research workflow.
 
 ## Comparison of Approaches: Efficiency Ranking
 To satisfy the comparison requirement, we analyzed two ways to rank experiment efficiency:
@@ -60,12 +70,36 @@ To satisfy the comparison requirement, we analyzed two ways to rank experiment e
 - **Trade-offs:** Pandas is faster due to C-level optimizations ($O(n \log n)$ with low constant factors), while our manual Merge Sort ($O(n \log n)$) provides transparency and demonstrates a fundamental understanding of divide-and-conquer algorithms required for specialized physics applications where custom sorting criteria might be needed.
 
 ## Testing & Robustness
-The system was tested against:
-- **Normal Cases:** Standard floating-point values for yield and temperature.
-- **Edge Cases:** Experiments with zero efficiency or missing data (handled during `clean_data`).
-- **Invalid Inputs:** Non-numeric search queries and out-of-bounds menu selections are caught using `try-except` blocks.
-- **Limitation:** The current BST does not handle duplicate keys by storing lists; it overwrites the value, which may lead to data loss if multiple experiments have the exact same yield to 10 decimal places.
+The system was tested using both manual terminal interactions and an automated test suite (`test_fusion.py`). We categorized our testing into four key areas to ensure maximum stability:
+
+1. **Normal Cases:** 
+   - Verified that standard physics values (Temperature, Magnetic Field) are parsed correctly.
+   - Confirmed the "Overall Efficiency" feature is calculated accurately during initialization.
+   - Validated that the BST correctly stores and retrieves data under standard operating conditions.
+
+2. **Edge Cases:**
+   - **Empty Range Search:** Verified that searching for yields in a range where no experiments exist returns a helpful "no results" message rather than crashing.
+   - **Exact Point Search:** Tested range searches where `min == max` to ensure the BST boundary logic (`<=` and `>=`) is precise.
+   - **Zeros/NaNs:** Handled experiments with zero Energy Input (which would cause division by zero) by dropping them during the `clean_data` phase.
+
+3. **Invalid Inputs:**
+   - **Menu Selection:** The terminal loop is wrapped in a `try-except` block to prevent crashes when a user enters non-numeric choices (e.g., entering "abc" instead of "1").
+   - **Statistic Filtering:** The `view_specific_stats` method validates that a feature is numeric before attempting calculations, preventing runtime errors on categorical columns.
+
+4. **Unusual/Extreme Inputs:**
+   - **Large Numbers:** Tested the Linear Regression module with extremely large scientific notation values (e.g., $10^{20}$). NumPy's `linalg.inv` handles these unless the matrix becomes singular, in which case the system catches the `LinAlgError`.
+   - **Session Summary:** Verified that the summary table correctly displays all operations performed with their execution times when the user quits the program. Tested scenarios with zero operations, single operation, and multiple operations.
+   - **Duplicates:** We discovered that if two experiments have the *exact* same Neutron Yield, the current BST implementation overwrites the first entry. This is an "extreme" case given the precision of the simulation, but it represents a data loss scenario.
+
+### What We Learned
+Testing revealed that our system is highly robust for standard physics analysis but sensitive to the "balance" of the BST. We learned that data integrity depends heavily on the `clean_data` phase—if we don't drop NaNs early, matrix operations in the toolbox fail.
+
+### System Struggles & Limitations
+- **BST Scaling:** The BST is not self-balancing (not an AVL or Red-Black tree). If the dataset is inserted in a sorted order, the tree becomes a linked list, degrading performance to $O(n)$.
+- **Duplicate Overwrites:** As noted, the BST cannot currently store multiple experiments with the same key.
+- **Memory:** While Merge Sort is stable, its $O(n)$ space complexity means the system may struggle if the dataset grows significantly beyond its current size.
 
 ## How to Run
-1. Install dependencies: `pip install -r requirements.txt`
-2. Run the program: `python main.py`
+1. **Install dependencies:** `pip install -r requirements.txt`
+2. **Run the program:** `python main.py`
+3. **Run automated tests:** `python test_fusion.py`

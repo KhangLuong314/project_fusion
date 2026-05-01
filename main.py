@@ -9,6 +9,7 @@ import toolbox as tools
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import time
 sns.set_palette('husl')
 import pandas as pd
 pd.set_option('display.max_columns', None)
@@ -31,15 +32,15 @@ class Execution:
     def __init__(self, data_file):
         self.data_file = data_file
         self.clean_data()
-        # Initialize BST for efficient lookup as per project requirements
-        self.yield_bst = ds.Binary_Search_Tree()
+        self.yield_bst = ds.Binary_Search_Tree() # Initialize BST for efficient lookup
         self.populate_bst()
+        self.operation_history = [] # Track operations and execution times
 
     def clean_data(self):
         df = pd.read_csv(self.data_file)
-        # Future Dev: Consider moving this to toolbox.py if a generic calculation module is created.
         df['Overall Efficiency'] = df['Power Output'] / df['Energy Input'] 
         
+        # We only keep the columns that are relevant to our analysis and exist in the dataset, based on the provided glossary.
         glossary_columns = [
             'Magnetic Field Strength',
             'Plasma Instabilities',
@@ -69,14 +70,14 @@ class Execution:
 
     def view_stats(self, figureshowing=False):
         """Provides summary statistics and optional visualizations."""
-        print(f"{GREEN}Dataset shape: {self.df.shape}{RESET}")
-        print(f"Dataset columns: {self.df.columns.tolist()}")
-        
-        mag_config = self.df['Magnetic Field Configuration']
-        print(f"{RED}Unique magnetic field configuration:{RESET}")
-        print(mag_config.unique())
-
-        if figureshowing:
+        if not figureshowing:
+            print(f"{GREEN}Dataset shape: {self.df.shape}{RESET}")
+            print(f"Dataset columns: {self.df.columns.tolist()}")
+            
+            mag_config = self.df['Magnetic Field Configuration']
+            print(f"{RED}Unique magnetic field configuration:{RESET}")
+            print(mag_config.unique())
+        else:
             fig, axes = plt.subplots(1, 3, figsize=(14, 5))
             sns.histplot(x=self.df['Temperature'], kde=True, ax=axes[0], color='skyblue')
             axes[0].set_title('Distribution of Temperature')
@@ -88,7 +89,7 @@ class Execution:
             plt.show()
 
     def view_specific_stats(self, mag_config, stat_type, feature):
-        """Provides specific statistics based on user input with robustness."""
+        """Provides specific statistics based on user input."""
         # Case-insensitive matching for magnetic field configuration
         available_configs = self.df['Magnetic Field Configuration'].unique()
         config_match = next((c for c in available_configs if str(c).lower() == mag_config.lower()), None)
@@ -215,29 +216,44 @@ class Execution:
         print(f"{GREEN}Top 5 Efficiencies (Manual Sort):{RESET}")
         print(arr[:5])
 
+    def record_operation(self, operation_name, execution_time):
+        """Records an operation and its execution time to the history."""
+        self.operation_history.append({
+            'Operation': operation_name,
+            'Execution Time (s)': execution_time
+        })
+
+    def print_summary(self):
+        """Prints a summary table of all operations performed."""
+        if not self.operation_history:
+            print(f"{YELLOW}No operations were performed during this session.{RESET}")
+            return
+        
+        print(f"\n{GREEN}{'='*60}")
+        print("           SESSION SUMMARY")
+        print(f"{'='*60}{RESET}")
+        
+        summary_df = pd.DataFrame(self.operation_history)
+        summary_df.insert(0, 'No.', range(1, len(summary_df) + 1))
+        
+        print(summary_df.to_string(index=False))
+        print(f"{'='*60}")
+        print(f"{GREEN}Total operations: {len(self.operation_history)}{RESET}")
+
 def print_menu():
     print(f"{GREEN}\n--- Nuclear Fusion Data Manager --- {RESET}")
-    print("1) View dataset") 
-    print("2) View statistics (with figure)")
-    print("3) View statistics (without figure)")
+    print("1) Preview Raw Data (Head)") 
+    print("2) Visual Data Exploration (Plots)")
+    print("3) Show Dataset Summary & Metadata") 
     print("4) Manual Search for Experiment ID (Binary Search)")
     print("5) View specific statistics by magnetic field configuration")
     print("6) Configure your own design matrix X")
-    print("7) Top 10 experiments with highest neutron yields")
-    print("8) Top 10 experiments with highest overall efficiency") 
+    print("7) Top 10 experiments with highest neutron yields (df.nlargest)")
+    print("8) Top 10 experiments with highest overall efficiency (df.nlargest)") 
     print("9) Search for Neutron Yield range (BST Search)")
     print("10) Manual Ranking of Efficiencies (Merge Sort)")
-    print("11) Filter experiments by Temperature threshold")
+    print("11) Filter experiments by Temperature greater than threshold")
     print("0) Quit")
-
-def print_submenu():
-    print(f"{RED}\n--- Nuclear Fusion Feature Menu --- {RESET}")
-    print("Enter the numbers corresponding to the features you want, separated by spaces:")
-    print("1) Plasma Instabilities   2) Magnetic Field Strength  3) Fuel Density") 
-    print("4) Temperature            5) Confinement Time         6) Energy Input")
-    print("7) Power Output           8) Neutron Yield            9) Ignition")
-    print("10) Include all features")
-
 
 def read_int(prompt):
     text = input(prompt).strip()
@@ -255,47 +271,87 @@ def main():
         choice = input("Please enter your selection: ").strip()
 
         if choice == "1":
+            print("\n")
+            start_time = time.time()
             data.view_dataset()
+            data.record_operation("Preview Raw Data", time.time() - start_time)
         elif choice == "2":
+            print("\n")
+            start_time = time.time()
             data.view_stats(figureshowing=True)
+            data.record_operation("Visual Data Exploration", "N/A (plots shown)")
         elif choice == "3":
+            print("\n")
+            start_time = time.time()
             data.view_stats(figureshowing=False)
-        elif choice == "4":            
+            data.record_operation("Dataset Summary & Metadata", time.time() - start_time)
+        elif choice == "4":  
+            print("\n")          
             try:
                 target_id = int(input("Enter experiment ID to search for: "))
+                start_time = time.time()
                 data.manual_search_id(target_id)
+                data.record_operation("Binary Search (ID)", time.time() - start_time)
             except ValueError:
                 print(f"{RED}Invalid input. Please enter an integer ID.{RESET}")
         elif choice == "5":
+            print("\n")
+            print(f"{GREEN}Available magnetic field configurations:{RESET}")
+            print(data.df['Magnetic Field Configuration'].unique())
             mag_config = input("Enter magnetic field configuration to filter by: ")
             stat_type = input("Enter statistic type (mean, median, std): ")
             print(f"{YELLOW}Available features: Temperature, Neutron Yield, Overall Efficiency{RESET}")
             feature = input("Enter feature to analyze (e.g., Temperature, Neutron Yield): ")
+            start_time = time.time()
             data.view_specific_stats(mag_config, stat_type, feature)
+            data.record_operation("Specific Statistics by Config", time.time() - start_time)
         elif choice == "6": 
-            print_submenu()
+            print(f"{RED}\n--- Nuclear Fusion Feature Menu --- {RESET}")
+            print("Enter the numbers corresponding to the features you want, separated by spaces:")
+            print("1) Plasma Instabilities   2) Magnetic Field Strength  3) Fuel Density") 
+            print("4) Temperature            5) Confinement Time         6) Energy Input")
+            print("7) Power Output           8) Neutron Yield            9) Ignition")
+            print("10) Include all features")
             feature_choice = input("> ").split()
+            start_time = time.time()
             data.config_design_matrix(feature_choice)
+            data.record_operation("Configure Design Matrix", time.time() - start_time)
         elif choice == "7": 
+            print("\n")
+            start_time = time.time()
             data.top_neutron_exp()
+            data.record_operation("Top 10 Neutron Yields", time.time() - start_time)
         elif choice == "8":
+            print("\n")
+            start_time = time.time()
             data.top_efficiency_exp()
+            data.record_operation("Top 10 Overall Efficiency", time.time() - start_time)
         elif choice == "9":
+            print("\n")
             try:
                 min_yield = float(input("Enter minimum Neutron Yield: "))
                 max_yield = float(input("Enter maximum Neutron Yield: "))
+                start_time = time.time()
                 data.search_neutron_yield(min_yield, max_yield)
+                data.record_operation("BST Search (Neutron Yield)", time.time() - start_time)
             except ValueError:
                 print(f"{RED}Invalid input. Please enter numbers.{RESET}")
         elif choice == "10":
+            print("\n")
+            start_time = time.time()
             data.manual_rank_efficiency()
+            data.record_operation("Merge Sort Ranking", time.time() - start_time)
         elif choice == "11":
+            print("\n")
             threshold = input("Enter Temperature threshold (keV): ")
             try:
+                start_time = time.time()
                 data.filter_by_temperature(float(threshold))
+                data.record_operation("Filter by Temperature", time.time() - start_time)
             except ValueError:
                 print(f"{RED}Invalid input. Please enter a number.{RESET}")
         elif choice == "0":
+            data.print_summary()
             break
         else: 
             print("Invalid Choice. Please choose again.")
